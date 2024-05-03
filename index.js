@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express');
 const cors = require('cors');
 const app = express();
@@ -18,6 +18,58 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
+    const serviceCollection = client.db('phCarDoctors').collection('Services');
+    const bookingsCollection = client.db('phCarDoctors').collection('Bookings');
+    app.get('/api/services', async (req, res) => {
+      const cursor = serviceCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+    app.get('/api/services/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const options = {
+        projection: { service_id: 1, title: 1, price: 1, img: 1 },
+      };
+      const result = await serviceCollection.findOne(query, options);
+      res.send(result);
+    });
+    app.get('/api/bookings/', async (req, res) => {
+      console.log(req.query.email);
+      let query = {};
+      if (req.query?.email) {
+        query = { email: req.query.email };
+      }
+      const cursor = bookingsCollection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+    app.post('/api/bookings/', async (req, res) => {
+      const doc = req.body;
+      //   delete doc._id;
+      console.log(doc);
+      const result = await bookingsCollection.insertOne(doc);
+      res.send(result);
+    });
+    app.delete('/api/bookings/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await bookingsCollection.deleteOne(query);
+      res.send(result);
+    });
+    app.patch('/api/bookings/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedBooking = req.body;
+      const updatedDoc = {
+        $set: {
+          status: updatedBooking.status,
+        },
+      };
+      console.log(updatedBooking);
+      const result = await bookingsCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
     console.log(
       'Pinged your deployment. You successfully connected to MongoDB!'
     );
